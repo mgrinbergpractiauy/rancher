@@ -1,0 +1,2 @@
+"use strict";(self["webpackChunkcluster_log_extension"]=self["webpackChunkcluster_log_extension"]||[]).push([[6560],{26560:(e,r,t)=>{t.r(r),t.d(r,{default:()=>a});var s=t(853),c=t(55823);const o={beforeCreate(){const e=!!this.$store.getters["management/schemaFor"](c.Mc.SETTING);return this.$router.replace({name:"c-cluster-product-resource",params:{...this.$route.params,product:s.NAME,resource:e?c.Mc.SETTING:c.Mc.FEATURE}})}},u=o,a=u}}]);
+//# sourceMappingURL=6560.dc24dbed.js.map

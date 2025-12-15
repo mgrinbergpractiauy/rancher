@@ -1,0 +1,2 @@
+"use strict";(self["webpackChunkcluster_log_extension"]=self["webpackChunkcluster_log_extension"]||[]).push([[4961],{74961:(e,n,t)=>{t.r(n),t.d(n,{default:()=>i});var r=t(20641);function s(e,n,t,s,o,c){return(0,r.uX)(),(0,r.CE)("div",null,"Redirecting...")}const o={mounted(){const e=this.$store.getters["backToRancherLink"];window.location.href=e}};var c=t(66262);const u=(0,c.A)(o,[["render",s]]),i=u}}]);
+//# sourceMappingURL=4961.39d10de6.js.map

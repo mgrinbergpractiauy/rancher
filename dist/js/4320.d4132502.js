@@ -1,0 +1,2 @@
+"use strict";(self["webpackChunkcluster_log_extension"]=self["webpackChunkcluster_log_extension"]||[]).push([[4320],{34320:(e,n,t)=>{t.r(n),t.d(n,{default:()=>l});var r=t(20641);function s(e,n,t,s,o,c){const u=(0,r.g2)("ResourceDetail");return(0,r.uX)(),(0,r.Wv)(u)}var o=t(50630);const c={name:"AlertmanagerConfig",components:{ResourceDetail:o.A}};var u=t(66262);const a=(0,u.A)(c,[["render",s]]),l=a}}]);
+//# sourceMappingURL=4320.d4132502.js.map

@@ -1,0 +1,2 @@
+"use strict";(self["webpackChunkcluster_log_extension"]=self["webpackChunkcluster_log_extension"]||[]).push([[3087],{23087:(e,t,s)=>{s.r(t),s.d(t,{default:()=>u});var c=s(47441);const r={fetch({store:e,redirect:t}){const s=e.getters["defaultClusterId"];t(s?{name:"c-cluster",params:{cluster:s}}:{name:"c-cluster-product",params:{cluster:"local",product:c.NAME}})}},l=r,u=l}}]);
+//# sourceMappingURL=3087.b03c7db8.js.map

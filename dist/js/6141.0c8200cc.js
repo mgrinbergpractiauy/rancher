@@ -1,0 +1,2 @@
+"use strict";(self["webpackChunkcluster_log_extension"]=self["webpackChunkcluster_log_extension"]||[]).push([[6141],{16141:(e,r,t)=>{t.r(r),t.d(r,{default:()=>d});var u=t(20641),n=t(90033);function o(e,r,t,o,s,c){return(0,u.uX)(),(0,u.CE)("div",null,"\n    Default dashboard for "+(0,n.v_)(c.product),1)}const s={computed:{product(){return this.$route.params.product}}};var c=t(66262);const a=(0,c.A)(s,[["render",o]]),d=a}}]);
+//# sourceMappingURL=6141.0c8200cc.js.map

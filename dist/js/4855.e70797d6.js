@@ -1,0 +1,2 @@
+"use strict";(self["webpackChunkcluster_log_extension"]=self["webpackChunkcluster_log_extension"]||[]).push([[4855],{34855:(e,t,n)=>{n.r(t),n.d(t,{default:()=>u});var r=n(20641);function c(e,t,n,c,o,s){const a=(0,r.g2)("ResourceDetail");return(0,r.uX)(),(0,r.Wv)(a,{"parent-route-override":"c-cluster-fleet-application"})}var o=n(50630);const s={name:"FleetApplicationCreatePage",components:{ResourceDetail:o.A}};var a=n(66262);const l=(0,a.A)(s,[["render",c]]),u=l}}]);
+//# sourceMappingURL=4855.e70797d6.js.map

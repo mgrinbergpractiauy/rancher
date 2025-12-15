@@ -1,0 +1,2 @@
+"use strict";(self["webpackChunkcluster_log_extension"]=self["webpackChunkcluster_log_extension"]||[]).push([[435],{44949:(e,a,n)=>{async function t(e){let a;const n={headers:{accept:"application/yaml"}};return e.hasLink("view")&&(a=(await e.followLink("view",n)).data),e.cleanForDownload(a)}n.r(a),n.d(a,{getYaml:()=>t})}}]);
+//# sourceMappingURL=drawer18.5dd6bcd7.js.map
