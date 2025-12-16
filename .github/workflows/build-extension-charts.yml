@@ -1,20 +1,156 @@
 name: Build and Release Extension Charts
 
 on:
-  # >>> AQUI VA LA SECCIÓN INPUTS <<<
+  # TUS DISPARADORES (Correctos para la ejecución directa)
   workflow_dispatch:
-    inputs: # <--- ¡Mover aquí!
-      tagged_release:
-        description: 'Tag (Ej: cluster-log-extension-0.1.0)'
-        required: true
-        default: 'v0.0.0'
+    inputs: 
+      # Mantenemos los inputs DENTRO de workflow_dispatch
       target_branch:
-        description: 'Rama de destino'
         required: true
+        type: string
         default: 'gh-pages'
-      # ... y el resto de inputs que tenías (is_test, create_pr, etc.)
+      tagged_release:
+        required: true
+        type: string
+        default: ${{ github.ref_name }}
+      is_test:
+        required: false
+        type: string
+      create_pr:
+        required: false
+        type: string
+      test_ext_repo:
+        required: false
+        type: string
+      test_ext_branch:
+        required: false
+        type: string
+        
+  release:  
+    types: [released]
+
+env:
+  ACTIONS_RUNNER_DEBUG: false
+  CI_COMMIT_MESSAGE: CI Build Artifacts
+
+defaults:
+  run:
+    shell: bash
+    working-directory: ./
+
+# El código que estaba en el archivo remoto y tiene el parche
+jobs:
+  build-extension-artifact:
+    name: Build extension artifact
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+    outputs:
+      build-status: ${{ job.status }}
+    steps:
+      # >>> EL PARCHE DE coreutils AQUI <<<
+      - name: Install Missing System Dependencies (coreutils fix)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y coreutils
+      # -----------------------------------
+      # El resto de los steps usa 'inputs.' porque están definidos en 'on: workflow_dispatch: inputs:'
+      - if: inputs.is_test == 'true'
+        name: Checkout (test flow)
+        uses: actions/checkout@v6
+        with:
+          repository: rancher/${{ inputs.test_ext_repo }}
+          ref: ${{ inputs.test_ext_branch }}
+          fetch-depth: 0
+      
+      - if: inputs.is_test != 'true'
+        name: Checkout (normal flow)
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Configure Git
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.8.0
+
+      - name: Setup Nodejs with yarn caching
+        uses: actions/setup-node@v6
+        with:
+          cache: yarn
+          node-version-file: '.nvmrc'
+
+      - name: Install dependencies
+        run: yarn
+
+      - name: Parse Extension Name
+        if: github.ref_type == 'tag' || inputs.is_test == 'true'
+        id: parsed-name
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          yarn parse-tag-name ${{ inputs.tagged_release }} ${{ github.run_id }} "charts"
+
+      - name: Run build script
+        shell: bash
+        id: build_script
+        run: |
+          publish="yarn publish-pkgs -s ${{ github.repository }} -b ${{ inputs.target_branch }}"
+
+          if [[ -n "${{ inputs.tagged_release }}" ]]; then
+            publish="$publish -t ${{ inputs.tagged_release }}"
+          fi
+
+          if [[ "${{ inputs.is_test }}" == "true" ]]; then
+            publish="$publish -f"
+          fi
+
+          $publish
+
+      - name: Upload charts artifact
+        if: github.ref_type == 'tag' || (github.ref == 'refs/heads/main' && github.event_name != 'pull_request') || inputs.is_test == 'true'
+        uses: actions/upload-artifact@v5
+        with:
+          name: charts
+          path: tmp
 
   release:
-    types: [released]
-    
-# ... (Removemos la sección "inputs:" global)
+    name: Release Build
+    if: github.ref_type == 'tag' || (github.ref == 'refs/heads/main' && github.event_name != 'pull_request') || inputs.is_test != 'true'
+    needs: build-extension-artifact
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
+      deployments: write
+      pages: write
+    outputs:
+      release-status: ${{ job.status }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          # Usamos inputs.target_branch porque el valor viene del trigger
+          ref: '${{ inputs.target_branch }}' 
+
+      - name: Configure Git
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v6
+        with:
+          name: charts
+
+      # El resto de los steps de release (Commit, Push, Chart-releaser)
+      # ...
