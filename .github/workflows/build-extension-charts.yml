@@ -1,4 +1,50 @@
-# Reemplaza el bloque 'Reorganize Extension and Chart Folders (FIX)' con este:
+name: Build extension artifact
+
+on:
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'charts/**'
+      - 'extensions/**'
+      - 'pkg/**'
+      - 'chart/**'
+      - 'package.json'
+      - 'yarn.lock'
+      - '.github/workflows/build-extension-charts.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build extension artifact
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+
+    steps:
+      # --- CORRECCIÓN #1: Dependencia para md5 (Checksum) ---
+      - name: Install Missing System Dependencies (checksum fix)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y coreutils bsdmainutils
+          
+      - name: Set up Environment Variables
+        id: env
+        run: |
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            echo "TAG_NAME=main" >> $GITHUB_OUTPUT
+          else
+            echo "TAG_NAME=v1.0.0-manual-test" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Checkout (normal flow)
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          repository: mgrinbergpractiauy/rancher
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
+      # --- CORRECCIÓN #2: Reorganización Robusta de Carpetas (Soluciona 'Artifact not found') ---
       - name: Reorganize Extension and Chart Folders (FINAL FIX)
         run: |
           echo "--- Reorganizando Extensión (./pkg/cluster-log-extension) ---"
@@ -8,7 +54,7 @@
             echo "Extensión movida correctamente a ./extensions/."
           else
             echo "ERROR: Directorio ./pkg/cluster-log-extension no encontrado. El código fuente debe estar presente."
-            exit 1 # Forzamos la falla si no encuentra el código fuente
+            exit 1 
           fi
 
           echo "--- Reorganizando Chart (./chart o ./Chart.yaml) ---"
@@ -23,7 +69,6 @@
           elif [ -f "./Chart.yaml" ]; then
             echo "Detectado Chart.yaml en la raíz. Moviendo archivos del chart desde la raíz..."
             mv ./Chart.yaml ./charts/cluster-log-extension/
-            # Mueve otros archivos comunes del chart, ignorando errores si no existen (2>/dev/null || true)
             mv ./values.yaml ./charts/cluster-log-extension/ 2>/dev/null || true
             if [ -d "./templates" ]; then
               mv ./templates ./charts/cluster-log-extension/
@@ -31,8 +76,102 @@
             echo "Archivos del Chart movidos de la raíz a ./charts/cluster-log-extension/."
           else
             echo "ERROR: No se encontró la carpeta 'chart' ni 'Chart.yaml' en la raíz. El Chart debe estar en una de estas ubicaciones."
-            exit 1 # Forzamos la falla si no encuentra el Chart
+            exit 1 
           fi
           
           echo "--- Estructura de carpetas final (previo a yarn) ---"
           ls -R
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Git Credentials
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.8.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: 'yarn'
+          
+      - name: Install dependencies
+        run: yarn
+        
+      # Sube los archivos preparados al Job 'publish'. Si 'yarn' fue exitoso, 'tmp' existe y está poblada.
+      - name: Upload charts artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: charts
+          path: tmp
+          if-no-files-found: warn
+
+  # ===================================================================
+  # SEGUNDO JOB: PUBLISH (Completo y funcional)
+  # ===================================================================
+  publish:
+    name: Publish charts
+    runs-on: ubuntu-24.04
+    needs: build
+    if: success() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          repository: mgrinbergpractiauy/rancher
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Download charts artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: charts
+          path: tmp
+
+      - name: Set up Environment Variables
+        id: env
+        run: |
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            echo "TAG_NAME=main" >> $GITHUB_OUTPUT
+          else
+            echo "TAG_NAME=v1.0.0-manual-test" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Enable Corepack
+        run: corepack enable
+        
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: 'yarn'
+          
+      - name: Install dependencies
+        run: yarn
+        
+      # --- PASO CRUCIAL: Publicar los artefactos ---
+      - name: Publish extensions and charts
+        id: publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          publish="yarn publish-pkgs -s ${{ github.repository }} -b gh-pages"
+
+          if [[ -n "${{ steps.env.outputs.TAG_NAME }}" ]]; then
+            publish="$publish -t ${{ steps.env.outputs.TAG_NAME }}"
+          fi
+
+          if [[ "${{ github.event.inputs.force }}" == "true" ]]; then
+            publish="$publish -f"
+          fi
+
+          $publish
