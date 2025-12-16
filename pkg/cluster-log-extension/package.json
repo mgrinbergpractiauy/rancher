@@ -3,7 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    // 💡 SOLUCIÓN 1: Fuerza el punto de entrada a usar index.ts como librería
     "build": "vue-cli-service build --target lib --name index ./index.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -12,9 +11,10 @@
     "vue": "^2.6.14"
   },
   "devDependencies": {
-    // 💡 SOLUCIÓN 3: Asegura la dependencia de Rancher Shell para resolver el alias @shell
-    // Usa la versión que corresponde a tu Rancher (ej. 2.7.99 para 2.7.x)
-    "@rancher/shell": "2.7.99", 
+    // ESTA LÍNEA ES CRÍTICA PARA RESOLVER EL ALIAS @shell
+    "@rancher/shell": "2.7.99",
+    
+    // El resto de tus devDependencies
     "@vue/cli-plugin-babel": "~5.0.0",
     "@vue/cli-plugin-eslint": "~5.0.0",
     "@vue/cli-plugin-typescript": "~5.0.0",
