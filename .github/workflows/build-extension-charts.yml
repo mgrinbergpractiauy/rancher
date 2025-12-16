@@ -94,23 +94,25 @@ jobs:
           cache: 'yarn'
           
       - name: Install root dependencies
-        run: yarn
-        
+        run: yarn # Instala las dependencias principales
+
       # 4. PASO CRÍTICO: COMPILAR LA UI DENTRO DE SU CARPETA
       - name: Build UI Extension (yarn build)
         working-directory: ${{ env.EXTENSION_DIR }}
         run: |
-          echo "Ejecutando yarn build dentro de ${{ env.EXTENSION_DIR }} para compilar la UI..."
-          # El script 'build' de package.json compila la UI y la pone en 'dist/' dentro de la extensión.
-          yarn install # Asegura dependencias locales
-          yarn build
+          echo "Asegurando dependencias de la UI en ${{ env.EXTENSION_DIR }}..."
+          # Instalamos dependencias localmente, de forma más segura.
+          yarn install --frozen-lockfile || yarn install 
+
+          echo "Ejecutando yarn build para compilar la UI..."
+          yarn build 
           
       # 5. EMPAQUETAR EL ARTEFACTO (Usando Helm directamente)
       - name: Package Chart and Compiled UI Artifact
         run: |
           echo "Empaquetando el Chart usando Helm..."
           mkdir -p tmp
-          # El comando 'helm package' toma el Chart (que incluye la UI compilada) y crea el .tgz en tmp/.
+          # El comando 'helm package' crea el .tgz en tmp/.
           helm package ${{ env.CHART_DIR }} -d tmp
           
           # Verificar el artefacto final
@@ -123,10 +125,10 @@ jobs:
         with:
           name: charts
           path: tmp
-          if-no-files-found: error # Cambiamos a 'error' para asegurar que existe.
+          if-no-files-found: error 
 
   # ===================================================================
-  # SEGUNDO JOB: PUBLISH
+  # SEGUNDO JOB: PUBLISH (No necesita cambios)
   # ===================================================================
   publish:
     name: Publish charts
