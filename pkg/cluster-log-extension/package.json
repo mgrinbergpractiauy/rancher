@@ -1,14 +1,28 @@
 {
   "name": "cluster-log-extension-tst",
   "version": "0.1.0",
-  ...
+  "private": true,
+  "scripts": {
+    // 💡 SOLUCIÓN 1: Fuerza el punto de entrada a usar index.ts como librería
+    "build": "vue-cli-service build --target lib --name index ./index.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "core-js": "^3.8.3",
+    "vue": "^2.6.14"
+  },
   "devDependencies": {
+    // 💡 SOLUCIÓN 3: Asegura la dependencia de Rancher Shell para resolver el alias @shell
+    // Usa la versión que corresponde a tu Rancher (ej. 2.7.99 para 2.7.x)
     "@rancher/shell": "2.7.99", 
-    // Mantén el resto de tus devDependencies
+    "@vue/cli-plugin-babel": "~5.0.0",
+    "@vue/cli-plugin-eslint": "~5.0.0",
+    "@vue/cli-plugin-typescript": "~5.0.0",
     "@vue/cli-service": "~5.0.0",
+    "@vue/eslint-config-typescript": "^9.1.0",
     "babel-eslint": "^10.1.0",
-    "eslint": "^6.8.0",
-    "eslint-plugin-vue": "^6.2.2",
+    "eslint": "^7.32.0",
+    "eslint-plugin-vue": "^8.0.3",
     "typescript": "~4.5.5"
   }
 }
