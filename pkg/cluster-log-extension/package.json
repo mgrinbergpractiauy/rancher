@@ -11,10 +11,7 @@
     "vue": "^2.6.14"
   },
   "devDependencies": {
-    // ESTA LÍNEA ES CRÍTICA PARA RESOLVER EL ALIAS @shell
     "@rancher/shell": "2.7.99",
-    
-    // El resto de tus devDependencies
     "@vue/cli-plugin-babel": "~5.0.0",
     "@vue/cli-plugin-eslint": "~5.0.0",
     "@vue/cli-plugin-typescript": "~5.0.0",
