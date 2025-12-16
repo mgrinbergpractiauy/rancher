@@ -44,8 +44,8 @@ jobs:
           repository: mgrinbergpractiauy/rancher
           token: ${{ secrets.GITHUB_TOKEN }}
           
-      # --- CORRECCIÓN #2: Reorganización Robusta de Carpetas (Soluciona 'Artifact not found') ---
-      - name: Reorganize Extension and Chart Folders (FINAL FIX)
+      # --- CORRECCIÓN #2: Reorganización con la ruta PLURAL CONFIRMADA (charts/) ---
+      - name: Reorganize Extension and Chart Folders (FINAL FIX based on user path)
         run: |
           echo "--- Reorganizando Extensión (./pkg/cluster-log-extension) ---"
           mkdir -p extensions
@@ -57,25 +57,28 @@ jobs:
             exit 1 
           fi
 
-          echo "--- Reorganizando Chart (./chart o ./Chart.yaml) ---"
-          mkdir -p charts/cluster-log-extension
+          echo "--- Reorganizando Chart (Ubicación Confirmada: ./charts) ---"
+          # La carpeta de destino del chart que espera el script 'publish-pkgs'
+          CHART_DEST_DIR="charts/cluster-log-extension"
+          mkdir -p "$CHART_DEST_DIR"
           
-          # Prioridad 1: Buscar en la carpeta 'chart' (singular)
-          if [ -d "./chart" ]; then
-            mv ./chart/* ./charts/cluster-log-extension/
-            echo "Chart movido de la carpeta ./chart a la carpeta de destino."
+          # 1. Buscamos los archivos en la ubicación confirmada (./charts/)
+          if [ -f "./charts/Chart.yaml" ]; then
+            echo "Chart.yaml encontrado en la ruta ./charts/. Moviendo contenidos..."
+            
+            # Mueve todos los archivos del chart (excepto la subcarpeta que acabamos de crear)
+            # a la subcarpeta requerida por el publish script (charts/cluster-log-extension/)
+            find ./charts -maxdepth 1 -mindepth 1 ! -name 'cluster-log-extension' -exec mv {} "$CHART_DEST_DIR" \;
+            
+            echo "Archivos del Chart movidos a $CHART_DEST_DIR/."
           
-          # Prioridad 2: Buscar archivos del chart en la raíz del repositorio
-          elif [ -f "./Chart.yaml" ]; then
-            echo "Detectado Chart.yaml en la raíz. Moviendo archivos del chart desde la raíz..."
-            mv ./Chart.yaml ./charts/cluster-log-extension/
-            mv ./values.yaml ./charts/cluster-log-extension/ 2>/dev/null || true
-            if [ -d "./templates" ]; then
-              mv ./templates ./charts/cluster-log-extension/
-            fi
-            echo "Archivos del Chart movidos de la raíz a ./charts/cluster-log-extension/."
+          # 2. Si no lo encontramos allí, verificamos si ya está en la carpeta de destino (en caso de re-run)
+          elif [ -f "$CHART_DEST_DIR/Chart.yaml" ]; then
+            echo "Chart.yaml ya está en la ubicación final ($CHART_DEST_DIR/). No se requiere movimiento."
+          
+          # 3. Falla si no lo encuentra en las ubicaciones esperadas
           else
-            echo "ERROR: No se encontró la carpeta 'chart' ni 'Chart.yaml' en la raíz. El Chart debe estar en una de estas ubicaciones."
+            echo "ERROR: Chart.yaml no se encontró. La ruta esperada es ./charts/Chart.yaml o ya movido a $CHART_DEST_DIR/."
             exit 1 
           fi
           
