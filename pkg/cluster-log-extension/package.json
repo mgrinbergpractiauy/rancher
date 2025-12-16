@@ -1,29 +1,14 @@
 {
   "name": "cluster-log-extension-tst",
-  "description": "cluster-log-extension plugin tst",
   "version": "0.1.0",
-  "private": false,
-  "rancher": {
-    "annotations": {
-      "catalog.cattle.io/rancher-version": ">= 2.10.0",
-      "catalog.cattle.io/ui-extensions-version": ">= 3.0.0 < 4.0.0"
-    }
-  },
-  "scripts": {
-    "build": "vue-cli-service build --target lib --name index ./index.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "engines": {
-    "node": ">=16"
-  },
+  ...
   "devDependencies": {
-    "@vue/cli-plugin-babel": "~5.0.0",
+    "@rancher/shell": "2.7.99", 
+    // Mantén el resto de tus devDependencies
     "@vue/cli-service": "~5.0.0",
-    "@vue/cli-plugin-typescript": "~5.0.0"
-  },
-  "browserslist": [
-    "> 1%",
-    "last 2 versions",
-    "not dead"
-  ]
+    "babel-eslint": "^10.1.0",
+    "eslint": "^6.8.0",
+    "eslint-plugin-vue": "^6.2.2",
+    "typescript": "~4.5.5"
+  }
 }
