@@ -1,18 +1,18 @@
 name: Build and Release Extension Charts
 
 on:
-  # TUS DISPARADORES (Correctos para la ejecución directa)
+  # Disparador manual (workflow_dispatch)
   workflow_dispatch:
     inputs: 
-      # Mantenemos los inputs DENTRO de workflow_dispatch
       target_branch:
         required: true
         type: string
         default: 'gh-pages'
       tagged_release:
+        # Se requiere un valor fijo o una cadena vacía como default.
         required: true
         type: string
-        default: ${{ github.ref_name }}
+        default: 'v1.0.0-manual-test' 
       is_test:
         required: false
         type: string
@@ -26,6 +26,7 @@ on:
         required: false
         type: string
         
+  # Disparador por tag de GitHub (el flujo normal)
   release:  
     types: [released]
 
@@ -38,7 +39,6 @@ defaults:
     shell: bash
     working-directory: ./
 
-# El código que estaba en el archivo remoto y tiene el parche
 jobs:
   build-extension-artifact:
     name: Build extension artifact
@@ -49,13 +49,23 @@ jobs:
     outputs:
       build-status: ${{ job.status }}
     steps:
-      # >>> EL PARCHE DE coreutils AQUI <<<
+      # >>> EL PARCHE DE coreutils (FIX para md5/checksum) <<<
       - name: Install Missing System Dependencies (coreutils fix)
         run: |
           sudo apt-get update
           sudo apt-get install -y coreutils
-      # -----------------------------------
-      # El resto de los steps usa 'inputs.' porque están definidos en 'on: workflow_dispatch: inputs:'
+      # --------------------------------------------------------
+      
+      # Determine qué tag usar: el del evento release o el input manual.
+      - name: Set Tag Name
+        id: set_tag_name
+        run: |
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            echo "TAG_NAME=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "TAG_NAME=${{ inputs.tagged_release }}" >> $GITHUB_OUTPUT
+          fi
+          
       - if: inputs.is_test == 'true'
         name: Checkout (test flow)
         uses: actions/checkout@v6
@@ -98,7 +108,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          yarn parse-tag-name ${{ inputs.tagged_release }} ${{ github.run_id }} "charts"
+          # Usamos la variable determinada en el step 'Set Tag Name'
+          yarn parse-tag-name ${{ steps.set_tag_name.outputs.TAG_NAME }} ${{ github.run_id }} "charts"
 
       - name: Run build script
         shell: bash
@@ -106,8 +117,8 @@ jobs:
         run: |
           publish="yarn publish-pkgs -s ${{ github.repository }} -b ${{ inputs.target_branch }}"
 
-          if [[ -n "${{ inputs.tagged_release }}" ]]; then
-            publish="$publish -t ${{ inputs.tagged_release }}"
+          if [[ -n "${{ steps.set_tag_name.outputs.TAG_NAME }}" ]]; then
+            publish="$publish -t ${{ steps.set_tag_name.outputs.TAG_NAME }}"
           fi
 
           if [[ "${{ inputs.is_test }}" == "true" ]]; then
@@ -139,7 +150,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          # Usamos inputs.target_branch porque el valor viene del trigger
           ref: '${{ inputs.target_branch }}' 
 
       - name: Configure Git
@@ -152,5 +162,45 @@ jobs:
         with:
           name: charts
 
-      # El resto de los steps de release (Commit, Push, Chart-releaser)
-      # ...
+      - if: inputs.create_pr == 'true'
+        name: Generate branch name based on date and time
+        run: echo "NOW=$(date +'%Y-%m-%d-%H-%M-%S')" >> $GITHUB_ENV
+
+      - if: inputs.create_pr == 'true'
+        name: Commit Changes and push to a branch
+        run: |
+          git checkout -b sync-${{ env.NOW }}
+          git add ./{assets,charts,extensions,index.yaml}
+          git commit -a -m "Merging extension ${{ steps.set_tag_name.outputs.TAG_NAME }} ${{ env.NOW }}"
+          git push origin sync-${{ env.NOW }}
+
+      - if: inputs.create_pr == 'true'
+        name: Create Pull Request
+        run: |
+          pr_number=$(gh pr create \
+            --title "Create PR for extension ${{ steps.set_tag_name.outputs.TAG_NAME }} merge: ${{ env.NOW }}" \
+            --body "This PR was automatically created by a GitHub Action." \
+            --base main \
+            --head sync-${{ env.NOW }} \
+            --fill \
+            --repo ${{ github.repository }} | awk '{print $NF}')
+
+          if [ -z "$pr_number" ]; then
+            echo "Failed to create PR."
+            exit 1
+          fi
+
+      - if: inputs.create_pr != 'true'
+        name: Commit build
+        run: |
+          git add ./{assets,charts,extensions,index.yaml}
+          git commit -a -m "${{ env.CI_COMMIT_MESSAGE }}"
+          git push
+
+      - name: Run chart-releaser
+        uses: helm/chart-releaser-action@v1.7.0
+        with:
+          charts_dir: ./charts/*
+        env:
+          CR_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
+          CR_SKIP_EXISTING: true
