@@ -1,86 +1,20 @@
 name: Build and Release Extension Charts
 
 on:
-  # Disparador manual y por release (¡EL DISPARADOR CORRECTO!)
+  # >>> AQUI VA LA SECCIÓN INPUTS <<<
   workflow_dispatch:
-  release:  
-    types: [released]
-    
-# Mantenemos los inputs, pero ahora están a nivel de workflow_dispatch para ser llamados
-# (Nota: los inputs que no sean usados en workflow_dispatch se ignorarán en ejecución manual)
-inputs:
-  target_branch:
-    required: true
-    type: string
-    default: 'gh-pages' # Añadimos un default para el disparo manual
-  tagged_release:
-    required: true
-    type: string
-    default: ${{ github.ref_name }} # Usar el tag si existe
-  is_test:
-    required: false
-    type: string
-  create_pr:
-    required: false
-    type: string
-  test_ext_repo:
-    required: false
-    type: string
-  test_ext_branch:
-    required: false
-    type: string
-
-outputs:
-  build-job-status: 
-    value: ${{ jobs.build-extension-artifact.outputs.build-status }}
-
-env:
-  ACTIONS_RUNNER_DEBUG: false
-  CI_COMMIT_MESSAGE: CI Build Artifacts
-
-defaults:
-  run:
-    shell: bash
-    working-directory: ./
-
-# >>> COMIENZAN LOS JOBS PARCHEADOS QUE ANTES ESTABAN EN EL ARCHIVO REMOTO <<<
-jobs:
-  build-extension-artifact:
-    name: Build extension artifact
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write
-      contents: read
-    outputs:
-      build-status: ${{ job.status }}
-    steps:
-      # PARCHE DE coreutils
-      - name: Install Missing System Dependencies (coreutils fix)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y coreutils
-      - if: github.event_name == 'release' || inputs.is_test == 'true' # Ajuste la condición inputs.is_test por la nueva estructura
-        name: Checkout (flow)
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      # ... (AQUÍ IRÍA EL RESTO DE LOS STEPS DEL JOB build-extension-artifact) ...
-      # (Por espacio, no los copio, pero deben ir aquí, justo después del Checkout)
+    inputs: # <--- ¡Mover aquí!
+      tagged_release:
+        description: 'Tag (Ej: cluster-log-extension-0.1.0)'
+        required: true
+        default: 'v0.0.0'
+      target_branch:
+        description: 'Rama de destino'
+        required: true
+        default: 'gh-pages'
+      # ... y el resto de inputs que tenías (is_test, create_pr, etc.)
 
   release:
-    name: Release Build
-    # La lógica condicional aquí debe ajustarse a la nueva estructura de inputs/events
-    if: github.event_name == 'release' || inputs.is_test != 'true'
-    needs: build-extension-artifact
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write
-      contents: write
-      deployments: write
-      pages: write
-    outputs:
-      release-status: ${{ job.status }}
-    # ... (AQUÍ IRÍAN TODOS LOS STEPS DEL JOB release) ...
-    # ... (Checkout, Configure Git, Download, Commit/Push, chart-releaser)
-# >>> FIN DE LOS JOBS <<<
+    types: [released]
+    
+# ... (Removemos la sección "inputs:" global)
