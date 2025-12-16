@@ -1,89 +1,82 @@
-name: Build and Release Extension Charts
+name: Build extension artifact
 
 on:
-  # Disparador manual (workflow_dispatch)
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'charts/**'
+      - 'extensions/**'
+      - 'pkg/**'
+      - 'chart/**'
+      - 'package.json'
+      - 'yarn.lock'
+      - '.github/workflows/build-extension-charts.yml'
   workflow_dispatch:
-    inputs: 
-      target_branch:
-        required: true
-        type: string
-        default: 'gh-pages'
-      tagged_release:
-        # Se requiere un valor fijo o una cadena vacía como default.
-        required: true
-        type: string
-        default: 'v1.0.0-manual-test' 
-      is_test:
-        required: false
-        type: string
-      create_pr:
-        required: false
-        type: string
-      test_ext_repo:
-        required: false
-        type: string
-      test_ext_branch:
-        required: false
-        type: string
-        
-  # Disparador por tag de GitHub (el flujo normal)
-  release:  
-    types: [released]
-
-env:
-  ACTIONS_RUNNER_DEBUG: false
-  CI_COMMIT_MESSAGE: CI Build Artifacts
-
-defaults:
-  run:
-    shell: bash
-    working-directory: ./
 
 jobs:
-  build-extension-artifact:
+  build:
     name: Build extension artifact
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # Ajustado a una versión más reciente
     permissions:
-      actions: write
-      contents: read
-    outputs:
-      build-status: ${{ job.status }}
+      contents: write
+      pull-requests: write
+
     steps:
-      # >>> EL PARCHE DE coreutils (FIX para md5/checksum) <<<
-      - name: Install Missing System Dependencies (coreutils fix)
+      # --- CORRECCIÓN #1: Dependencia para md5 (incluyendo bsdmainutils) ---
+      - name: Install Missing System Dependencies (checksum fix)
         run: |
           sudo apt-get update
-          sudo apt-get install -y coreutils
-      # --------------------------------------------------------
-      
-      # Determine qué tag usar: el del evento release o el input manual.
-      - name: Set Tag Name
-        id: set_tag_name
+          # bsdmainutils provee el comando 'md5' o 'md5sum' si md5 no está
+          sudo apt-get install -y coreutils bsdmainutils
+          
+      - name: Set up Environment Variables
+        id: env
         run: |
           if [[ "${{ github.event_name }}" == "release" ]]; then
-            echo "TAG_NAME=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+            echo "TAG_NAME=main" >> $GITHUB_OUTPUT
           else
-            echo "TAG_NAME=${{ inputs.tagged_release }}" >> $GITHUB_OUTPUT
+            echo "TAG_NAME=v1.0.0-manual-test" >> $GITHUB_OUTPUT
           fi
           
-      - if: inputs.is_test == 'true'
-        name: Checkout (test flow)
-        uses: actions/checkout@v6
-        with:
-          repository: rancher/${{ inputs.test_ext_repo }}
-          ref: ${{ inputs.test_ext_branch }}
-          fetch-depth: 0
-      
-      - if: inputs.is_test != 'true'
-        name: Checkout (normal flow)
+      - name: Checkout (normal flow)
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          repository: mgrinbergpractiauy/rancher # Usar tu repo
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
+      # --- CORRECCIÓN #2: Reorganizar la Estructura de Carpetas ---
+      # Esto mueve los archivos de las rutas de desarrollo (pkg/ y chart) a 
+      # las rutas esperadas por el script de publicación (extensions/ y charts/)
+      - name: Reorganize Extension and Chart Folders (FIX)
+        run: |
+          echo "Moviendo extensión de ./pkg/cluster-log-extension a ./extensions/..."
+          mkdir -p extensions
+          # Mueve el directorio de la extensión
+          if [ -d "./pkg/cluster-log-extension" ]; then
+            mv ./pkg/cluster-log-extension ./extensions/
+          else
+            echo "Advertencia: Directorio ./pkg/cluster-log-extension no encontrado."
+          fi
+
+          echo "Moviendo chart de ./chart a ./charts/cluster-log-extension..."
+          mkdir -p charts/cluster-log-extension
+          
+          # Mover el contenido de la carpeta 'chart' (singular) a la nueva carpeta del chart (plural/subdirectorio)
+          if [ -d "./chart" ]; then
+            mv ./chart/* ./charts/cluster-log-extension/
+          else
+            echo "Advertencia: Directorio ./chart no encontrado, asumiendo chart ya en su lugar."
+          fi
+          
+          # Muestra la nueva estructura para verificación
+          ls -R
 
       - name: Enable Corepack
         run: corepack enable
 
-      - name: Configure Git
+      - name: Setup Git Credentials
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
@@ -93,114 +86,37 @@ jobs:
         with:
           version: v3.8.0
 
-      - name: Setup Nodejs with yarn caching
+      - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          cache: yarn
-          node-version-file: '.nvmrc'
-
+          node-version-file: .nvmrc
+          cache: 'yarn'
+          
       - name: Install dependencies
         run: yarn
-
-      - name: Parse Extension Name
-        if: github.ref_type == 'tag' || inputs.is_test == 'true'
-        id: parsed-name
+        
+      # El script de Rancher ahora debería encontrar las carpetas charts/ y extensions/
+      - name: Publish extensions and charts
+        id: publish
         env:
-          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Usamos la variable determinada en el step 'Set Tag Name'
-          yarn parse-tag-name ${{ steps.set_tag_name.outputs.TAG_NAME }} ${{ github.run_id }} "charts"
+          publish="yarn publish-pkgs -s ${{ github.repository }} -b gh-pages"
 
-      - name: Run build script
-        shell: bash
-        id: build_script
-        run: |
-          publish="yarn publish-pkgs -s ${{ github.repository }} -b ${{ inputs.target_branch }}"
-
-          if [[ -n "${{ steps.set_tag_name.outputs.TAG_NAME }}" ]]; then
-            publish="$publish -t ${{ steps.set_tag_name.outputs.TAG_NAME }}"
+          if [[ -n "${{ steps.env.outputs.TAG_NAME }}" ]]; then
+            publish="$publish -t ${{ steps.env.outputs.TAG_NAME }}"
           fi
 
-          if [[ "${{ inputs.is_test }}" == "true" ]]; then
+          if [[ "${{ github.event.inputs.force }}" == "true" ]]; then
             publish="$publish -f"
           fi
 
           $publish
 
+      # Sigue igual: subir artefactos de gráficos
       - name: Upload charts artifact
-        if: github.ref_type == 'tag' || (github.ref == 'refs/heads/main' && github.event_name != 'pull_request') || inputs.is_test == 'true'
         uses: actions/upload-artifact@v5
         with:
           name: charts
           path: tmp
-
-  release:
-    name: Release Build
-    if: github.ref_type == 'tag' || (github.ref == 'refs/heads/main' && github.event_name != 'pull_request') || inputs.is_test != 'true'
-    needs: build-extension-artifact
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write
-      contents: write
-      deployments: write
-      pages: write
-    outputs:
-      release-status: ${{ job.status }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          ref: '${{ inputs.target_branch }}' 
-
-      - name: Configure Git
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email 'github-actions[bot]@users.noreply.github.com'
-
-      - name: Download build artifact
-        uses: actions/download-artifact@v6
-        with:
-          name: charts
-
-      - if: inputs.create_pr == 'true'
-        name: Generate branch name based on date and time
-        run: echo "NOW=$(date +'%Y-%m-%d-%H-%M-%S')" >> $GITHUB_ENV
-
-      - if: inputs.create_pr == 'true'
-        name: Commit Changes and push to a branch
-        run: |
-          git checkout -b sync-${{ env.NOW }}
-          git add ./{assets,charts,extensions,index.yaml}
-          git commit -a -m "Merging extension ${{ steps.set_tag_name.outputs.TAG_NAME }} ${{ env.NOW }}"
-          git push origin sync-${{ env.NOW }}
-
-      - if: inputs.create_pr == 'true'
-        name: Create Pull Request
-        run: |
-          pr_number=$(gh pr create \
-            --title "Create PR for extension ${{ steps.set_tag_name.outputs.TAG_NAME }} merge: ${{ env.NOW }}" \
-            --body "This PR was automatically created by a GitHub Action." \
-            --base main \
-            --head sync-${{ env.NOW }} \
-            --fill \
-            --repo ${{ github.repository }} | awk '{print $NF}')
-
-          if [ -z "$pr_number" ]; then
-            echo "Failed to create PR."
-            exit 1
-          fi
-
-      - if: inputs.create_pr != 'true'
-        name: Commit build
-        run: |
-          git add ./{assets,charts,extensions,index.yaml}
-          git commit -a -m "${{ env.CI_COMMIT_MESSAGE }}"
-          git push
-
-      - name: Run chart-releaser
-        uses: helm/chart-releaser-action@v1.7.0
-        with:
-          charts_dir: ./charts/*
-        env:
-          CR_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
-          CR_SKIP_EXISTING: true
+          if-no-files-found: warn
