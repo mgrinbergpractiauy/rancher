@@ -1,4 +1,0 @@
-# Este archivo define la URL donde Rancher encontrará tu extensión
-endpoints:
-  - endpoint: http://ui-extension-cluster-log-extension-svc.cattle-ui-plugin-system:8080/plugin/cluster-log-extension-0.1.0
-  - compressedEndpoint: http://ui-extension-cluster-log-extension-svc.cattle-ui-plugin-system:8080/plugin/cluster-log-extension-0.1.0.tgz
