@@ -96,12 +96,18 @@ jobs:
       - name: Install root dependencies
         run: yarn # Instala las dependencias principales
 
+      # ************ NUEVO PASO CRÍTICO ************
+      - name: Create Missing .shell Directory
+        run: |
+          echo "Creando el directorio de setup faltante que el vue.config de Rancher espera..."
+          mkdir -p ${{ env.EXTENSION_DIR }}/.shell
+      # **********************************************
+
       # 4. PASO CRÍTICO: COMPILAR LA UI DENTRO DE SU CARPETA
       - name: Build UI Extension (yarn build)
         working-directory: ${{ env.EXTENSION_DIR }}
         run: |
           echo "Asegurando dependencias de la UI en ${{ env.EXTENSION_DIR }}..."
-          # Instalamos dependencias localmente, de forma más segura.
           yarn install --frozen-lockfile || yarn install 
 
           echo "Ejecutando yarn build para compilar la UI..."
@@ -128,7 +134,7 @@ jobs:
           if-no-files-found: error 
 
   # ===================================================================
-  # SEGUNDO JOB: PUBLISH (No necesita cambios)
+  # SEGUNDO JOB: PUBLISH
   # ===================================================================
   publish:
     name: Publish charts
