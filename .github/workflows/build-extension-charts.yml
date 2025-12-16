@@ -44,14 +44,13 @@ jobs:
           repository: mgrinbergpractiauy/rancher
           token: ${{ secrets.GITHUB_TOKEN }}
           
-      # 2. REORGANIZACIÓN ROBUSTA 
-      - name: Reorganize Extension and Chart Folders
+      # 2. REORGANIZACIÓN ROBUSTA (SOLUCIÓN DEFINITIVA DE RUTA)
+      - name: Reorganize Chart Folders (Keeping UI in pkg/)
         run: |
-          echo "--- Reorganizando Extensión (./pkg/cluster-log-extension) ---"
-          mkdir -p extensions
+          echo "--- Verificando la Extensión (debe permanecer en ./pkg/cluster-log-extension) ---"
+          # El script 'build-pkg' espera la extensión en pkg/. Ya no la movemos a extensions/.
           if [ -d "./pkg/cluster-log-extension" ]; then
-            mv ./pkg/cluster-log-extension ./extensions/
-            echo "Extensión movida correctamente a ./extensions/."
+            echo "Extensión de UI confirmada en ./pkg/cluster-log-extension. No se mueve."
           else
             echo "ERROR: Directorio ./pkg/cluster-log-extension no encontrado. El código fuente debe estar presente."
             exit 1 
@@ -63,6 +62,7 @@ jobs:
           
           if [ -f "./charts/Chart.yaml" ]; then
             echo "Chart.yaml encontrado en ./charts/. Moviendo contenidos..."
+            # Movemos el *contenido* del chart a la subcarpeta requerida por el publicador.
             find ./charts -maxdepth 1 -mindepth 1 ! -name 'cluster-log-extension' -exec mv {} "$CHART_DEST_DIR" \;
           
           elif [ -f "$CHART_DEST_DIR/Chart.yaml" ]; then
@@ -99,18 +99,18 @@ jobs:
       - name: Install dependencies
         run: yarn
 
-      # 4. PASO DE CONSTRUCCIÓN FINAL (Usando el script correcto: 'build-pkg')
+      # 4. PASO DE CONSTRUCCIÓN FINAL 
       - name: Build Extension and Chart Artifact
+        # El comando 'build-pkg' ahora encontrará el package.json y los archivos de la UI.
         run: |
           echo "Ejecutando yarn build-pkg para crear la carpeta 'tmp' y el artefacto..."
-          # Usamos el script correcto: build-pkg
           yarn build-pkg
           
-          # Verificar si 'tmp' se creó y contiene algo (Para confirmación)
+          # Verificar si 'tmp' se creó y contiene algo (Debe ser un .tgz)
           echo "Contenido de la carpeta 'tmp' después de la construcción:"
-          ls -R tmp || echo "La carpeta 'tmp' no se creó o está vacía."
+          ls -R tmp || echo "ADVERTENCIA: La carpeta 'tmp' no se creó o está vacía."
 
-      # 5. SUBIR ARTEFACTO
+      # 5. SUBIR ARTEFACTO (Ahora debería funcionar)
       - name: Upload charts artifact
         uses: actions/upload-artifact@v5
         with:
