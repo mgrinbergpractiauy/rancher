@@ -11,7 +11,7 @@
     "vue": "^2.6.14"
   },
   "devDependencies": {
-    "@rancher/shell": "2.7.99",
+    "@rancher/shell": "*",
     "@vue/cli-plugin-babel": "~5.0.0",
     "@vue/cli-plugin-eslint": "~5.0.0",
     "@vue/cli-plugin-typescript": "~5.0.0",
