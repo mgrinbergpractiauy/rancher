@@ -20,6 +20,9 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: write
+    env:
+      EXTENSION_DIR: pkg/cluster-log-extension
+      CHART_DIR: charts/cluster-log-extension
 
     steps:
       # 1. SETUP INICIAL Y DEPENDENCIAS
@@ -44,37 +47,31 @@ jobs:
           repository: mgrinbergpractiauy/rancher
           token: ${{ secrets.GITHUB_TOKEN }}
           
-      # 2. REORGANIZACIÓN ROBUSTA (SOLUCIÓN DEFINITIVA DE RUTA)
-      - name: Reorganize Chart Folders (Keeping UI in pkg/)
+      # 2. REORGANIZACIÓN (Solo el Chart, la UI se queda en pkg/)
+      - name: Reorganize Chart Folders
         run: |
-          echo "--- Verificando la Extensión (debe permanecer en ./pkg/cluster-log-extension) ---"
-          # El script 'build-pkg' espera la extensión en pkg/. Ya no la movemos a extensions/.
-          if [ -d "./pkg/cluster-log-extension" ]; then
-            echo "Extensión de UI confirmada en ./pkg/cluster-log-extension. No se mueve."
+          echo "--- Verificando la Extensión (debe permanecer en ${{ env.EXTENSION_DIR }}) ---"
+          if [ -d "${{ env.EXTENSION_DIR }}" ]; then
+            echo "Extensión de UI confirmada en ${{ env.EXTENSION_DIR }}. No se mueve."
           else
-            echo "ERROR: Directorio ./pkg/cluster-log-extension no encontrado. El código fuente debe estar presente."
+            echo "ERROR: Directorio ${{ env.EXTENSION_DIR }} no encontrado."
             exit 1 
           fi
 
-          echo "--- Reorganizando Chart (Ubicación Confirmada: ./charts) ---"
-          CHART_DEST_DIR="charts/cluster-log-extension"
-          mkdir -p "$CHART_DEST_DIR"
+          echo "--- Reorganizando Chart (Ubicación: ${{ env.CHART_DIR }}) ---"
+          mkdir -p "${{ env.CHART_DIR }}"
           
-          if [ -f "./charts/Chart.yaml" ]; then
-            echo "Chart.yaml encontrado en ./charts/. Moviendo contenidos..."
-            # Movemos el *contenido* del chart a la subcarpeta requerida por el publicador.
-            find ./charts -maxdepth 1 -mindepth 1 ! -name 'cluster-log-extension' -exec mv {} "$CHART_DEST_DIR" \;
+          if [ -f "charts/Chart.yaml" ]; then
+            echo "Chart.yaml encontrado en charts/. Moviendo contenidos..."
+            find charts -maxdepth 1 -mindepth 1 ! -name 'cluster-log-extension' -exec mv {} "${{ env.CHART_DIR }}" \;
           
-          elif [ -f "$CHART_DEST_DIR/Chart.yaml" ]; then
-            echo "Chart.yaml ya está en la ubicación final ($CHART_DEST_DIR/). No se requiere movimiento."
+          elif [ -f "${{ env.CHART_DIR }}/Chart.yaml" ]; then
+            echo "Chart.yaml ya está en la ubicación final. No se requiere movimiento."
           
           else
             echo "ERROR: Chart.yaml no se encontró. Fallo en la reorganización del Chart."
             exit 1 
           fi
-          
-          echo "--- Estructura de carpetas final (previo a yarn) ---"
-          ls -R
           
       # 3. SETUP Y INSTALACIÓN DE DEPENDENCIAS
       - name: Enable Corepack
@@ -96,30 +93,40 @@ jobs:
           node-version-file: .nvmrc
           cache: 'yarn'
           
-      - name: Install dependencies
+      - name: Install root dependencies
         run: yarn
-
-      # 4. PASO DE CONSTRUCCIÓN FINAL 
-      - name: Build Extension and Chart Artifact
-        # El comando 'build-pkg' ahora encontrará el package.json y los archivos de la UI.
+        
+      # 4. PASO CRÍTICO: COMPILAR LA UI DENTRO DE SU CARPETA
+      - name: Build UI Extension (yarn build)
+        working-directory: ${{ env.EXTENSION_DIR }}
         run: |
-          echo "Ejecutando yarn build-pkg para crear la carpeta 'tmp' y el artefacto..."
-          yarn build-pkg
+          echo "Ejecutando yarn build dentro de ${{ env.EXTENSION_DIR }} para compilar la UI..."
+          # El script 'build' de package.json compila la UI y la pone en 'dist/' dentro de la extensión.
+          yarn install # Asegura dependencias locales
+          yarn build
           
-          # Verificar si 'tmp' se creó y contiene algo (Debe ser un .tgz)
-          echo "Contenido de la carpeta 'tmp' después de la construcción:"
-          ls -R tmp || echo "ADVERTENCIA: La carpeta 'tmp' no se creó o está vacía."
+      # 5. EMPAQUETAR EL ARTEFACTO (Usando Helm directamente)
+      - name: Package Chart and Compiled UI Artifact
+        run: |
+          echo "Empaquetando el Chart usando Helm..."
+          mkdir -p tmp
+          # El comando 'helm package' toma el Chart (que incluye la UI compilada) y crea el .tgz en tmp/.
+          helm package ${{ env.CHART_DIR }} -d tmp
+          
+          # Verificar el artefacto final
+          echo "Contenido de la carpeta 'tmp' (debe tener el archivo .tgz):"
+          ls -R tmp
 
-      # 5. SUBIR ARTEFACTO (Ahora debería funcionar)
+      # 6. SUBIR ARTEFACTO
       - name: Upload charts artifact
         uses: actions/upload-artifact@v5
         with:
           name: charts
           path: tmp
-          if-no-files-found: warn
+          if-no-files-found: error # Cambiamos a 'error' para asegurar que existe.
 
   # ===================================================================
-  # SEGUNDO JOB: PUBLISH (No necesita cambios)
+  # SEGUNDO JOB: PUBLISH
   # ===================================================================
   publish:
     name: Publish charts
