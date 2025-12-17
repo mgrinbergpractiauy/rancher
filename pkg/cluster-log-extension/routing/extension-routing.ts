@@ -1,12 +1,7 @@
-// import ListResource from '@shell/pages/c/_cluster/_product/_resource/index.vue';
-// import CreateResource from '@shell/pages/c/_cluster/_product/_resource/create.vue';
-// import ViewResource from '@shell/pages/c/_cluster/_product/_resource/_id.vue';
-// import ViewNamespacedResource from '@shell/pages/c/_cluster/_product/_resource/_namespace/_id.vue';
-
-const LIST_RESOURCE = () => import('../../../shell/pages/c/_cluster/_product/_resource/index.vue');
-const CREATE_RESOURCE = () => import('../../../shell/pages/c/_cluster/_product/_resource/create.vue');
-const DETAIL_RESOURCE = () => import('../../../shell/pages/c/_cluster/_product/_resource/_id.vue');
-const NAMESPACED_RESOURCE = () => import('../../../shell/pages/c/_cluster/_product/_resource/_namespace/_id.vue');
+import ListResource from '@shell/pages/c/_cluster/_product/_resource/index.vue';
+import CreateResource from '@shell/pages/c/_cluster/_product/_resource/create.vue';
+import ViewResource from '@shell/pages/c/_cluster/_product/_resource/_id.vue';
+import ViewNamespacedResource from '@shell/pages/c/_cluster/_product/_resource/_namespace/_id.vue';
 import MyCustomPage from '../pages/myCustomPage.vue';
 
 // to achieve naming consistency throughout the extension
