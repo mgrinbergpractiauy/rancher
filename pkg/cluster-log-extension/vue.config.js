@@ -1,26 +1,29 @@
 const path = require('path');
 
-// Buscamos la carpeta 'shell' subiendo desde pkg/cluster-log-extension hasta la raíz
-const shellPath = path.resolve(__dirname, '..', '..', 'shell');
+// Localizamos la carpeta raíz del repositorio (rancher/rancher)
+const root = path.resolve(__dirname, '..', '..');
+const shellPath = path.join(root, 'shell');
 
 module.exports = require('../../node_modules/@rancher/shell/pkg/vue.config')(__dirname, {
   lintOnSave: false,
   chainWebpack(config) {
-    // 1. Forzamos los alias para que apunten a la carpeta física real
+    // 1. Forzar alias con rutas absolutas del sistema de archivos de GitHub
     config.resolve.alias
       .set('@shell', shellPath)
       .set('~@shell', shellPath);
 
-    // 2. Le decimos a Webpack que si no encuentra algo en la extensión, 
-    // lo busque en los node_modules de la raíz del proyecto
-    config.resolve.modules
-      .add(path.resolve(__dirname, '../../node_modules'));
-    
-    // 3. Importante: Asegurar que Webpack pueda cargar archivos .vue de fuera de su carpeta
+    // 2. IMPORTANTE: Permitir que el cargador de Vue procese la carpeta /shell
+    // Sin esto, Webpack encuentra el archivo pero se niega a leerlo
     config.module
       .rule('vue')
       .include
         .add(shellPath)
+        .add(__dirname)
         .end();
+
+    // 3. Asegurar que resuelva las dependencias desde la raíz si no están en la extensión
+    config.resolve.modules
+      .add(path.join(root, 'node_modules'))
+      .add('node_modules');
   }
 });
