@@ -1,197 +1,124 @@
-name: Build extension artifact
+name: Build and Release Extension Charts
 
 on:
-  push:
-    branches:
-      - 'main'
-    paths:
-      - 'charts/**'
-      - 'extensions/**'
-      - 'pkg/**'
-      - 'chart/**'
-      - 'package.json'
-      - 'yarn.lock'
-      - '.github/workflows/build-extension-charts.yml'
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      target_branch:
+        required: true
+        type: string
+      tagged_release:
+        required: true
+        type: string
+
+env:
+  ACTIONS_RUNNER_DEBUG: false
+  CI_COMMIT_MESSAGE: CI Build Artifacts
+
+defaults:
+  run:
+    shell: bash
+    working-directory: ./
 
 jobs:
-  build:
+  build-extension-artifact:
     name: Build extension artifact
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     permissions:
-      contents: write
-    env:
-      EXTENSION_DIR: pkg/cluster-log-extension
-      CHART_DIR: charts/cluster-log-extension
-
+      actions: write
+      contents: read
     steps:
-      # 1. SETUP INICIAL Y DEPENDENCIAS
-      - name: Install Missing System Dependencies (checksum fix)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y coreutils bsdmainutils
-          
-      - name: Set up Environment Variables
-        id: env
-        run: |
-          if [[ "${{ github.event_name }}" == "release" ]]; then
-            echo "TAG_NAME=main" >> $GITHUB_OUTPUT
-          else
-            echo "TAG_NAME=v1.0.0-manual-test" >> $GITHUB_OUTPUT
-          fi
-          
-      - name: Checkout (normal flow)
-        uses: actions/checkout@v6
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          repository: mgrinbergpractiauy/rancher
-          token: ${{ secrets.GITHUB_TOKEN }}
-          
-      # 2. REORGANIZACIÓN (Solo el Chart, la UI se queda en pkg/)
-      - name: Reorganize Chart Folders
-        run: |
-          echo "--- Verificando la Extensión (debe permanecer en ${{ env.EXTENSION_DIR }}) ---"
-          if [ -d "${{ env.EXTENSION_DIR }}" ]; then
-            echo "Extensión de UI confirmada en ${{ env.EXTENSION_DIR }}. No se mueve."
-          else
-            echo "ERROR: Directorio ${{ env.EXTENSION_DIR }} no encontrado."
-            exit 1 
-          fi
 
-          echo "--- Reorganizando Chart (Ubicación: ${{ env.CHART_DIR }}) ---"
-          mkdir -p "${{ env.CHART_DIR }}"
-          
-          if [ -f "charts/Chart.yaml" ]; then
-            echo "Chart.yaml encontrado en charts/. Moviendo contenidos..."
-            find charts -maxdepth 1 -mindepth 1 ! -name 'cluster-log-extension' -exec mv {} "${{ env.CHART_DIR }}" \;
-          
-          elif [ -f "${{ env.CHART_DIR }}/Chart.yaml" ]; then
-            echo "Chart.yaml ya está en la ubicación final. No se requiere movimiento."
-          
-          else
-            echo "ERROR: Chart.yaml no se encontró. Fallo en la reorganización del Chart."
-            exit 1 
-          fi
-          
-      # 3. SETUP Y INSTALACIÓN DE DEPENDENCIAS
       - name: Enable Corepack
         run: corepack enable
 
-      - name: Setup Git Credentials
+      - name: Configure Git
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
 
       - name: Setup Helm
-        uses: azure/setup-helm@v4
+        uses: azure/setup-helm@v3
         with:
           version: v3.8.0
 
-      - name: Setup Node
-        uses: actions/setup-node@v6
+      - name: Setup Nodejs with yarn caching
+        uses: actions/setup-node@v4
         with:
-          node-version-file: .nvmrc
-          cache: 'yarn'
-          
-      - name: Install root dependencies
-        run: yarn # Instala las dependencias principales
+          cache: yarn
 
-      # ************ NUEVO PASO CRÍTICO ************
-      - name: Create Missing .shell Directory
-        run: |
-          echo "Creando el directorio de setup faltante que el vue.config de Rancher espera..."
-          mkdir -p ${{ env.EXTENSION_DIR }}/.shell
-      # **********************************************
+      - name: Setup yarn
+        run: npm install -g yarn
 
-      # 4. PASO CRÍTICO: COMPILAR LA UI DENTRO DE SU CARPETA
-      - name: Build UI Extension (yarn build)
-        working-directory: ${{ env.EXTENSION_DIR }}
-        run: |
-          echo "Asegurando dependencias de la UI en ${{ env.EXTENSION_DIR }}..."
-          yarn install --frozen-lockfile || yarn install 
+      - name: Install dependencies
+        run: yarn
 
-          echo "Ejecutando yarn build para compilar la UI..."
-          yarn build 
-          
-      # 5. EMPAQUETAR EL ARTEFACTO (Usando Helm directamente)
-      - name: Package Chart and Compiled UI Artifact
-        run: |
-          echo "Empaquetando el Chart usando Helm..."
-          mkdir -p tmp
-          # El comando 'helm package' crea el .tgz en tmp/.
-          helm package ${{ env.CHART_DIR }} -d tmp
-          
-          # Verificar el artefacto final
-          echo "Contenido de la carpeta 'tmp' (debe tener el archivo .tgz):"
-          ls -R tmp
-
-      # 6. SUBIR ARTEFACTO
-      - name: Upload charts artifact
-        uses: actions/upload-artifact@v5
-        with:
-          name: charts
-          path: tmp
-          if-no-files-found: error 
-
-  # ===================================================================
-  # SEGUNDO JOB: PUBLISH
-  # ===================================================================
-  publish:
-    name: Publish charts
-    runs-on: ubuntu-24.04
-    needs: build
-    if: success() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-    permissions:
-      contents: write
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          repository: mgrinbergpractiauy/rancher
-          token: ${{ secrets.GITHUB_TOKEN }}
-          
-      # 1. DESCARGA DEL ARTEFACTO
-      - name: Download charts artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: charts
-          path: tmp
-
-      # 2. SETUP
-      - name: Set up Environment Variables
-        id: env
-        run: |
-          if [[ "${{ github.event_name }}" == "release" ]]; then
-            echo "TAG_NAME=main" >> $GITHUB_OUTPUT
-          else
-            echo "TAG_NAME=v1.0.0-manual-test" >> $GITHUB_OUTPUT
-          fi
-          
-      - name: Enable Corepack
-        run: corepack enable
-        
-      - name: Setup Node
-        uses: actions/setup-node@v6
-        with:
-          node-version-file: .nvmrc
-          cache: 'yarn'
-          
-      # 3. PUBLICAR
-      - name: Publish extensions and charts
-        id: publish
+      - name: Parse Extension Name
+        if: github.ref_type == 'tag'
+        id: parsed-name
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          publish="yarn publish-pkgs -s ${{ github.repository }} -b gh-pages"
+          yarn parse-tag-name ${{ inputs.tagged_release }} ${{ github.run_id }} "charts"
 
-          if [[ -n "${{ steps.env.outputs.TAG_NAME }}" ]]; then
-            publish="$publish -t ${{ steps.env.outputs.TAG_NAME }}"
-          fi
+      - name: Run build script
+        shell: bash
+        id: build_script
+        run: |
+          publish="yarn publish-pkgs -s ${{ github.repository }} -b ${{ inputs.target_branch }}"
 
-          if [[ "${{ github.event.inputs.force }}" == "true" ]]; then
-            publish="$publish -f"
+          if [[ -n "${{ inputs.tagged_release }}" ]]; then
+            publish="$publish -t ${{ inputs.tagged_release }}"
           fi
 
           $publish
+
+      - name: Upload charts artifact
+        if: github.ref_type == 'tag' || (github.ref == 'refs/heads/main' && github.event_name != 'pull_request')
+        uses: actions/upload-artifact@v3
+        with:
+          name: charts
+          path: tmp
+
+  release:
+    name: Release Build
+    if: github.ref_type == 'tag' || (github.ref == 'refs/heads/main' && github.event_name != 'pull_request')
+    needs: build-extension-artifact
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
+      deployments: write
+      pages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: '${{ inputs.target_branch }}'
+
+      - name: Configure Git
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: charts
+
+      - name: Commit build
+        run: |
+          git add ./{assets,charts,extensions,index.yaml}
+          git commit -a -m "${{ env.CI_COMMIT_MESSAGE }}"
+          git push
+
+      - name: Run chart-releaser
+        uses: helm/chart-releaser-action@v1.4.1
+        with:
+          charts_dir: ./charts/*
+        env:
+          CR_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
+          CR_SKIP_EXISTING: true
