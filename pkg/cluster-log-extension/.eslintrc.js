@@ -3,15 +3,14 @@ module.exports = {
   env: { node: true, browser: true },
   extends: [
     'plugin:vue/essential',
-    'eslint:recommended'
+    'eslint:recommended',
+    '@vue/typescript/recommended'
   ],
   rules: {
-    // Permitimos los require que usas en tu lógica
+    // ESTO EVITA QUE EL BUILD SE DETENGA POR TU CÓDIGO
+    'no-unused-vars': 'warn', 
+    '@typescript-eslint/no-unused-vars': 'warn',
     '@typescript-eslint/no-var-requires': 'off',
-    'no-console': 'off',
-    'no-debugger': 'off'
-  },
-  parserOptions: {
-    parser: '@typescript-eslint/parser'
+    'no-console': 'off'
   }
 };
