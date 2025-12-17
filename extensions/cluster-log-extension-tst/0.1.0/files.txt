@@ -1,0 +1,9 @@
+plugin/cluster-log-extension-tst-0.1.0.umd.min.29.js
+plugin/cluster-log-extension-tst-0.1.0.umd.min.29.js.map
+plugin/cluster-log-extension-tst-0.1.0.umd.min.60.js
+plugin/cluster-log-extension-tst-0.1.0.umd.min.60.js.map
+plugin/cluster-log-extension-tst-0.1.0.umd.min.js
+plugin/cluster-log-extension-tst-0.1.0.umd.min.js.map
+plugin/img/document.01e5b66a.svg
+plugin/img/harvester.20240f8a.png
+plugin/package.json

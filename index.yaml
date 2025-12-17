@@ -20,4 +20,24 @@ entries:
     urls:
     - assets/cluster-log-extension/cluster-log-extension-0.1.0.tgz
     version: 0.1.0
-generated: "2025-12-17T19:54:15.065058116Z"
+  cluster-log-extension-tst:
+  - annotations:
+      catalog.cattle.io/certified: rancher
+      catalog.cattle.io/namespace: cattle-ui-plugin-system
+      catalog.cattle.io/os: linux
+      catalog.cattle.io/permits-os: linux, windows
+      catalog.cattle.io/rancher-version: '>= 2.10.0'
+      catalog.cattle.io/scope: management
+      catalog.cattle.io/ui-component: plugins
+      catalog.cattle.io/ui-extensions-version: '>= 3.0.0 < 4.0.0'
+    apiVersion: v2
+    appVersion: 0.1.0
+    created: "2025-12-17T20:27:34.619223844Z"
+    description: cluster-log-extension plugin tst
+    digest: 7d871ec1016722629c974d5ee2b0df660f227f9767e6bbb129edb9e9ad6f9e00
+    name: cluster-log-extension-tst
+    type: application
+    urls:
+    - assets/cluster-log-extension-tst/cluster-log-extension-tst-0.1.0.tgz
+    version: 0.1.0
+generated: "2025-12-17T20:27:34.618683287Z"
