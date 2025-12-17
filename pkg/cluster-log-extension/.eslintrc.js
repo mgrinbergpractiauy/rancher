@@ -3,15 +3,15 @@ module.exports = {
   env: { node: true, browser: true },
   extends: [
     'plugin:vue/essential',
-    'eslint:recommended',
-    '@vue/typescript/recommended'
+    'eslint:recommended'
   ],
-  parserOptions: { ecmaVersion: 2020 },
   rules: {
-    'no-console': 'off',
-    // ESTA ES LA REGLA CLAVE: permite require() en archivos .ts
+    // Permitimos los require que usas en tu lógica
     '@typescript-eslint/no-var-requires': 'off',
-    '@typescript-eslint/no-explicit-any': 'off',
-    '@typescript-eslint/no-unused-vars': 'off'
+    'no-console': 'off',
+    'no-debugger': 'off'
+  },
+  parserOptions: {
+    parser: '@typescript-eslint/parser'
   }
 };
