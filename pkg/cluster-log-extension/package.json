@@ -9,7 +9,10 @@
       "catalog.cattle.io/ui-extensions-version": ">= 3.0.0 < 4.0.0"
     }
   },
-  "scripts": {},
+  "scripts": {
+    "build": "vue-cli-service build",
+    "test": "echo \"Error: no test specified\" && exit 1" 
+  },
   "engines": {
     "node": ">=16"
   },
