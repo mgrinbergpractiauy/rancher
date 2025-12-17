@@ -1,21 +1,18 @@
 const path = require('path');
 
-// Esta es la raíz del repositorio de Rancher
-const RANCHER_ROOT = path.resolve(__dirname, '..', '..');
+// Localizamos la carpeta 'shell' en la raíz del repositorio
+const rancherRoot = path.resolve(__dirname, '..', '..');
+const shellPath = path.join(rancherRoot, 'shell');
 
 module.exports = require('../../node_modules/@rancher/shell/pkg/vue.config')(__dirname, {
-  // 1. Forzamos a que ignore errores de linter para que no rompa el build
   lintOnSave: false,
-
   chainWebpack(config) {
-    // 2. Definimos @shell apuntando a la carpeta real en el repo
-    const shellPath = path.resolve(RANCHER_ROOT, 'shell');
-
+    // Forzamos la resolución de @shell a la carpeta física del repo
     config.resolve.alias
       .set('@shell', shellPath)
       .set('~@shell', shellPath);
 
-    // 3. Opcional: Si usas componentes de @pkg, asegúrate que sepa que es esta carpeta
+    // También añadimos @pkg por si el routing lo usa
     config.resolve.alias
       .set('@pkg', __dirname)
       .set('~@pkg', __dirname);
