@@ -1,24 +1,17 @@
 module.exports = {
   root: true,
-  env: {
-    node: true,
-    browser: true
-  },
-  // Usamos la configuración de tipos para que entienda el ":" en los .ts
+  env: { node: true, browser: true },
   extends: [
     'plugin:vue/essential',
     'eslint:recommended',
     '@vue/typescript/recommended'
   ],
-  parserOptions: {
-    ecmaVersion: 2020
-  },
+  parserOptions: { ecmaVersion: 2020 },
   rules: {
     'no-console': 'off',
-    'no-debugger': 'off',
-    // Desactivamos reglas molestas para que el build pase sí o sí
+    // ESTA ES LA REGLA CLAVE: permite require() en archivos .ts
+    '@typescript-eslint/no-var-requires': 'off',
     '@typescript-eslint/no-explicit-any': 'off',
-    '@typescript-eslint/no-unused-vars': 'off',
-    'vue/no-unused-components': 'off'
+    '@typescript-eslint/no-unused-vars': 'off'
   }
 };
