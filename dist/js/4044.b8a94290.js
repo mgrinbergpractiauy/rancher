@@ -1,2 +1,0 @@
-"use strict";(self["webpackChunkcluster_log_extension"]=self["webpackChunkcluster_log_extension"]||[]).push([[4044],{14044:(e,r,t)=>{t.r(r),t.d(r,{default:()=>i});var n=t(20641);function o(e,r,t,o,s,c){const u=(0,n.g2)("ResourceDetail");return(0,n.uX)(),(0,n.Wv)(u,{"store-override":"rancher","resource-override":"token","parent-route-override":"account"})}var s=t(50630);const c={name:"APIKeyCreate",components:{ResourceDetail:s.A}};var u=t(66262);const a=(0,u.A)(c,[["render",o]]),i=a}}]);
-//# sourceMappingURL=4044.b8a94290.js.map

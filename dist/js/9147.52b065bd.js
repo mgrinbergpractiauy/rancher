@@ -1,2 +1,0 @@
-"use strict";(self["webpackChunkcluster_log_extension"]=self["webpackChunkcluster_log_extension"]||[]).push([[9147],{79147:(e,s,n)=>{n.r(s),n.d(s,{default:()=>l});var t=n(20641);function r(e,s,n,r,o,c){const u=(0,t.g2)("ResourceDetail");return(0,t.uX)(),(0,t.Wv)(u)}var o=n(50630);const c={name:"RolesResourceCreate",components:{ResourceDetail:o.A}};var u=n(66262);const a=(0,u.A)(c,[["render",r]]),l=a}}]);
-//# sourceMappingURL=9147.52b065bd.js.map
