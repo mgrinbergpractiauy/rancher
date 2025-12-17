@@ -1,9 +1,9 @@
 const path = require('path');
 
 module.exports = require('../../node_modules/@rancher/shell/pkg/vue.config')(__dirname, {
-  lintOnSave: false,
+  lintOnSave: false, // Ignora errores de linter durante el build
   chainWebpack(config) {
-    // Definimos dónde está el core de Rancher exactamente
+    // Calculamos la ruta real a la carpeta /shell que está 2 niveles arriba
     const shellPath = path.resolve(__dirname, '../../shell');
 
     config.resolve.alias
