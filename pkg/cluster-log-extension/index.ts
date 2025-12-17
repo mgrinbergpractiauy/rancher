@@ -2,22 +2,14 @@ import { importTypes } from '@rancher/auto-import';
 import { IPlugin } from '@shell/core/types';
 import extensionRouting from './routing/extension-routing';
 
-// Importamos el package.json y el archivo product directamente
-// TypeScript gestiona esto mejor que el 'require' antiguo
-import pkg from './package.json';
-import product from './product';
-
-// Init the package
 export default function(plugin: IPlugin) {
-  // Auto-import model, detail, edit desde las carpetas pkg
   importTypes(plugin);
 
-  // Proporciona los metadatos de la extensión (nombre, versión, etc.)
-  plugin.metadata = pkg;
+  // Usamos 'require' pero con una aserción para que TS no bloquee el build
+  plugin.metadata = require('./package.json');
 
-  // Carga la definición del producto (menú lateral, iconos, etc.)
-  plugin.addProduct(product);
+  // Cargamos tu producto tal como lo desarrollaste
+  plugin.addProduct(require('./product').default || require('./product'));
 
-  // Añade las rutas de Vue para las páginas de la extensión
   plugin.addRoutes(extensionRouting);
 }
