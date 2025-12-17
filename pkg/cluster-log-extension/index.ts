@@ -1,6 +1,8 @@
 import { importTypes } from '@rancher/auto-import';
 import { IPlugin } from '@shell/core/types';
 import extensionRouting from './routing/extension-routing';
+import pkg from './package.json'; // Importación directa
+import product from './product';    // Importación directa
 
 // Init the package
 export default function(plugin: IPlugin) {
@@ -8,13 +10,11 @@ export default function(plugin: IPlugin) {
   importTypes(plugin);
 
   // Provide extension metadata from package.json
-  // it will grab information such as `name` and `description`
-  plugin.metadata = require('./package.json');
+  plugin.metadata = pkg;
 
   // Load a product
-  plugin.addProduct(require('./product'));
+  plugin.addProduct(product);
 
   // Add Vue Routes
   plugin.addRoutes(extensionRouting);
 }
-
