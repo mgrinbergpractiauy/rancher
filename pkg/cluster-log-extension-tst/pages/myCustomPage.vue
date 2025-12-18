@@ -54,15 +54,20 @@
 <script>
 import { ref, computed, onMounted } from "vue"
 import { useStore } from "vuex"
-import { useRoute } from "vue-router"
+//import { useRoute } from "vue-router"
 
 
 export default {
   name: "DashboardPage",
-
-  setup() {
+  props: {
+   route: {
+    type: Object,
+    required: false
+   }
+  },
+  setup(props) {
     const store = useStore()
-    const route = useRoute()
+    //const route = useRoute()
 
     const pods = ref([])
     const execResult = ref(null)
@@ -78,7 +83,7 @@ export default {
     })
 
 
-    const clusterId = computed(() => route.params?.cluster || "N/DD")
+    const clusterId = computed(() => props.route?.params?.cluster || "N/DD")
 
     const targetPod = computed(() => {
       const prefix = "chart-apiagreement-webapp"
