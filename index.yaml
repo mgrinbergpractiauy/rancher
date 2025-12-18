@@ -32,12 +32,12 @@ entries:
       catalog.cattle.io/ui-extensions-version: '>= 3.0.0 < 4.0.0'
     apiVersion: v2
     appVersion: 0.1.0
-    created: "2025-12-17T20:37:13.555872013Z"
+    created: "2025-12-18T12:46:58.519678434Z"
     description: cluster-log-extension plugin tst
-    digest: 6879c105a3da46f31fd84b5e11b5d437de7276c7eb543df58e5d44f0f769f6f5
+    digest: 9870dc3a5e11cd7c29bb13405217f93f9d710afad331ff81800681a3aab3e005
     name: cluster-log-extension-tst
     type: application
     urls:
     - assets/cluster-log-extension-tst/cluster-log-extension-tst-0.1.0.tgz
     version: 0.1.0
-generated: "2025-12-17T20:37:13.554791497Z"
+generated: "2025-12-18T12:46:58.519324301Z"
